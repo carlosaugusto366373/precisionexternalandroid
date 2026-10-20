@@ -1,0 +1,2 @@
+Pasta para arquivos de dados carregados pelo aplicativo como assets.
+So adicione payloads/arquivos se o codigo do seu app souber como le-los e voce tiver permissao para usa-los.

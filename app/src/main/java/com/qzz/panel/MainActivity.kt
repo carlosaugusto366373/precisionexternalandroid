@@ -36,6 +36,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,6 +53,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+
+// --- FONTE NOVA ---
+val PoppinsFont = FontFamily(
+    Font(R.font.poppins_regular, FontWeight.Normal),
+    Font(R.font.poppins_bold, FontWeight.Bold)
+)
 
 // --- TEMAS ---
 data class AppColors(
@@ -73,7 +81,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            QzzPanelApp()
+            MaterialTheme(typography = Typography(defaultFontFamily = PoppinsFont)) {
+                QzzPanelApp()
+            }
         }
     }
 }
@@ -87,14 +97,12 @@ fun QzzPanelApp() {
     var temaIndex by remember { mutableIntStateOf(prefs.getInt("tema_index", 0)) }
     val temaAtual = when(temaIndex) { 1 -> TemaRoxo; 2 -> TemaPreto; else -> TemaVermelho }
 
-    // --- VERIFICADOR DE SESSÃO E EXPIRAÇÃO (API) ---
     LaunchedEffect(isLogado) {
         if (isLogado) {
             while (true) {
                 val expiry = prefs.getLong("expiry", 0L)
                 val agora = System.currentTimeMillis()
                 
-                // 1. Checa se expirou localmente
                 if (expiry > 0 && agora >= expiry) {
                     prefs.edit().clear().apply()
                     isLogado = false
@@ -104,7 +112,6 @@ fun QzzPanelApp() {
                     break
                 }
                 
-                // 2. Checa no servidor se a key foi banida
                 val key = prefs.getString("key_salva", null)
                 if (key != null) {
                     val aindaValida = checarSessaoNoServidor(key, context)
@@ -117,8 +124,7 @@ fun QzzPanelApp() {
                         break
                     }
                 }
-                
-                delay(15000) // Checa a cada 15 segundos
+                delay(15000)
             }
         }
     }
@@ -148,11 +154,10 @@ fun QzzPanelApp() {
 @Composable
 fun FundoAnimado(tema: AppColors) {
     val infiniteTransition = rememberInfiniteTransition(label = "fundo")
-    
     val offsetX by infiniteTransition.animateFloat(
         initialValue = -100f,
         targetValue = 100f,
-        animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(10000, easing = LinearEasing), RepeatMode.Reverse),
         label = "bolha_x"
     )
 
@@ -160,20 +165,20 @@ fun FundoAnimado(tema: AppColors) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(tema.accent.copy(alpha = 0.25f), Color.Transparent),
+                    colors = listOf(tema.accent.copy(alpha = 0.2f), Color.Transparent),
                     center = Offset(size.width * 0.1f + offsetX, size.height * 0.1f),
-                    radius = size.width * 0.8f
+                    radius = size.width * 0.9f
                 ),
-                radius = size.width * 0.8f,
+                radius = size.width * 0.9f,
                 center = Offset(size.width * 0.1f + offsetX, size.height * 0.1f)
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(tema.accentDark.copy(alpha = 0.25f), Color.Transparent),
+                    colors = listOf(tema.accentDark.copy(alpha = 0.2f), Color.Transparent),
                     center = Offset(size.width * 0.9f - offsetX, size.height * 0.8f),
-                    radius = size.width * 0.9f
+                    radius = size.width * 1.0f
                 ),
-                radius = size.width * 0.9f,
+                radius = size.width * 1.0f,
                 center = Offset(size.width * 0.9f - offsetX, size.height * 0.8f)
             )
         }
@@ -187,6 +192,18 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
     var keyInput by remember { mutableStateOf("") }
     var carregando by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    
+    var showLogo by remember { mutableStateOf(false) }
+    var showText by remember { mutableStateOf(false) }
+    var showInput by remember { mutableStateOf(false) }
+    var showButtons by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        delay(100); showLogo = true
+        delay(150); showText = true
+        delay(150); showInput = true
+        delay(150); showButtons = true
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -194,34 +211,36 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
     ) {
         FundoAnimado(tema)
 
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { 50 }),
-            exit = fadeOut()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .clip(RoundedCornerShape(32.dp))
+                .background(tema.bgPanel.copy(alpha = 0.85f))
+                .border(1.dp, tema.accent.copy(alpha = 0.5f), RoundedCornerShape(32.dp))
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(tema.bgPanel.copy(alpha = 0.85f))
-                    .border(1.dp, tema.accent.copy(alpha = 0.5f), RoundedCornerShape(28.dp))
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            AnimatedVisibility(visible = showLogo, enter = fadeIn() + scaleIn()) {
                 Image(
                     painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Logo",
                     modifier = Modifier.size(90.dp).clip(CircleShape).border(3.dp, tema.accent, CircleShape),
                     contentScale = ContentScale.Crop
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = "GUTO x QZZ", color = tema.accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
-                Text(text = "ACESSO PREMIUM • PAYPAL", color = tema.textDim, fontSize = 10.sp, letterSpacing = 2.sp)
-                
-                Spacer(modifier = Modifier.height(32.dp))
+            AnimatedVisibility(visible = showText, enter = slideInVertically { 50 } + fadeIn()) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "GUTO x QZZ", color = tema.accent, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "ACESSO PREMIUM • PAYPAL", color = tema.textDim, fontSize = 10.sp, letterSpacing = 3.sp)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
 
+            AnimatedVisibility(visible = showInput, enter = slideInVertically { 50 } + fadeIn()) {
                 OutlinedTextField(
                     value = keyInput,
                     onValueChange = { keyInput = it },
@@ -235,89 +254,77 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                         focusedIndicatorColor = tema.accent,
                         unfocusedIndicatorColor = tema.border
                     ),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     singleLine = true
                 )
+            }
 
-                Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-                Button(
-                    onClick = {
-                        if (keyInput.isBlank()) {
-                            Toast.makeText(context, "Digite a key", Toast.LENGTH_SHORT).show()
-                            return@Button
+            AnimatedVisibility(visible = showButtons, enter = slideInVertically { 50 } + fadeIn()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            if (keyInput.isBlank()) {
+                                Toast.makeText(context, "Digite a key", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            carregando = true
+                            scope.launch {
+                                val resultado = validarKey(keyInput, context)
+                                carregando = false
+                                if (resultado.first) {
+                                    Toast.makeText(context, "Acesso liberado", Toast.LENGTH_SHORT).show()
+                                    onLoginSucesso(resultado.second, keyInput)
+                                } else {
+                                    Toast.makeText(context, "Key inválida", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !carregando
+                    ) {
+                        if (carregando) {
+                            CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 2.sp)
                         }
-                        carregando = true
-                        scope.launch {
-                            val resultado = validarKey(keyInput, context)
-                            carregando = false
-                            if (resultado.first) {
-                                Toast.makeText(context, "Acesso liberado", Toast.LENGTH_SHORT).show()
-                                onLoginSucesso(resultado.second, keyInput)
-                            } else {
-                                Toast.makeText(context, "Key inválida", Toast.LENGTH_SHORT).show()
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { uriHandler.openUri("https://discord.gg/MfY4EAFKnf") },
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5865F2)),
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Image(painter = painterResource(id = R.drawable.ic_discord), contentDescription = "Discord", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Discord", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = !carregando
-                ) {
-                    if (carregando) {
-                        CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
-                    } else {
-                        Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Botão Discord
-                    Button(
-                        onClick = { uriHandler.openUri("https://discord.gg/MfY4EAFKnf") },
-                        modifier = Modifier.weight(1f).height(46.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5865F2)),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        Button(
+                            onClick = { uriHandler.openUri("https://whatsapp.com/channel/0029Vb8FZ022Jl87vqng8E2v") },
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(0.dp)
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_discord),
-                                contentDescription = "Discord",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Discord", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // Botão WhatsApp
-                    Button(
-                        onClick = { uriHandler.openUri("https://whatsapp.com/channel/0029Vb8FZ022Jl87vqng8E2v") },
-                        modifier = Modifier.weight(1f).height(46.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_whatsapp),
-                                contentDescription = "WhatsApp",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("WhatsApp", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Image(painter = painterResource(id = R.drawable.ic_whatsapp), contentDescription = "WhatsApp", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -384,27 +391,34 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.90f)
-                .clip(RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(32.dp))
                 .background(tema.bgPanel.copy(alpha = 0.85f))
-                .border(1.dp, tema.accent.copy(alpha = 0.4f), RoundedCornerShape(28.dp))
-                .padding(20.dp)
+                .border(1.dp, tema.accent.copy(alpha = 0.4f), RoundedCornerShape(32.dp))
+                .padding(22.dp)
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
+                val infiniteTransition = rememberInfiniteTransition(label = "theme_pulse")
+                val pulseScale by infiniteTransition.animateFloat(
+                    initialValue = 1f, targetValue = 1.2f,
+                    animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "pulse"
+                )
+
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(24.dp)
+                        .size(28.dp)
+                        .graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }
                         .clip(CircleShape)
                         .background(tema.bgCard)
                         .border(1.dp, tema.border, CircleShape)
                         .clickable { onTrocarTema() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(tema.accent))
+                    Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(tema.accent))
                 }
 
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("QZZ x GUTO", color = tema.accent, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                    Text("QZZ x GUTO", color = tema.accent, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     Text("Premium • PayPal", color = tema.textDim, fontSize = 12.sp, letterSpacing = 1.sp)
                 }
             }
@@ -412,7 +426,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth().height(36.dp),
+                modifier = Modifier.fillMaxWidth().height(40.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 abas.forEachIndexed { index, titulo ->
@@ -421,9 +435,9 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(if (selecionada) tema.accent else tema.bgCard)
-                            .border(1.dp, if (selecionada) tema.accent else tema.border, RoundedCornerShape(12.dp))
+                            .border(1.dp, if (selecionada) tema.accent else tema.border, RoundedCornerShape(14.dp))
                             .clickable { abaSelecionada = index },
                         contentAlignment = Alignment.Center
                     ) {
@@ -442,7 +456,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             AnimatedContent(
                 targetState = abaSelecionada,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                    slideInHorizontally { it / 2 } + fadeIn() togetherWith slideOutHorizontally { -it / 2 } + fadeOut()
                 }, label = "abas"
             ) { targetAba ->
                 Column(
@@ -453,14 +467,14 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .padding(bottom = 10.dp)
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(tema.bgCard.copy(alpha = 0.5f))
-                                    .border(1.dp, tema.border, RoundedCornerShape(16.dp))
+                                    .border(1.dp, tema.border, RoundedCornerShape(18.dp))
                                     .clickable { 
                                         Toast.makeText(context, "Injete as funções para liberar o Overlay do Aim Assist!", Toast.LENGTH_LONG).show()
                                     }
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
@@ -483,10 +497,10 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(120.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .height(130.dp)
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(tema.accent.copy(alpha = 0.05f))
-                                    .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(16.dp))
+                                    .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(18.dp))
                                     .clickable { seletorArquivo.launch("application/zip") },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -502,10 +516,10 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = { Toast.makeText(context, "Arquivo Injetado", Toast.LENGTH_SHORT).show() },
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
                                 enabled = arquivoUri != null,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Bold)
                             }
@@ -517,12 +531,12 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             CardFuncao("Expira em", dataStr, false, {}, tema, isEstatico = true)
                             CardFuncao("Plataforma", "Android Nativo", false, {}, tema, isEstatico = true)
                             
-                            Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(24.dp))
                             Text(
                                 text = "Sair da conta",
                                 color = tema.textDim,
                                 fontSize = 12.sp,
-                                modifier = Modifier.fillMaxWidth().clickable { onSair() }.padding(10.dp),
+                                modifier = Modifier.fillMaxWidth().clickable { onSair() }.padding(12.dp),
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -533,31 +547,31 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
                     onClick = { injetarEAbrir() },
-                    modifier = Modifier.weight(1f).fillMaxHeight().shadow(10.dp, RoundedCornerShape(20.dp), ambientColor = tema.accentDark),
+                    modifier = Modifier.weight(1f).fillMaxHeight().shadow(12.dp, RoundedCornerShape(22.dp), ambientColor = tema.accentDark),
                     colors = ButtonDefaults.buttonColors(containerColor = tema.accentDark),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(22.dp),
                     enabled = !injetando
                 ) {
-                    Text("INJETAR FF\nNORMAL", color = Color.White, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
+                    Text("INJETAR FF\nNORMAL", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 18.sp)
                 }
 
                 Button(
                     onClick = { injetarEAbrir() },
-                    modifier = Modifier.weight(1f).fillMaxHeight().shadow(15.dp, RoundedCornerShape(20.dp), ambientColor = tema.accent),
+                    modifier = Modifier.weight(1f).fillMaxHeight().shadow(15.dp, RoundedCornerShape(22.dp), ambientColor = tema.accent),
                     colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(22.dp),
                     enabled = !injetando
                 ) {
-                    Text("INJETAR FF\nMAX", color = tema.btnText, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
+                    Text("INJETAR FF\nMAX", color = tema.btnText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 18.sp)
                 }
             }
             
-            Text("Android • Overlay", color = tema.textDim, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center, letterSpacing = 1.sp)
+            Text("Android • Overlay", color = tema.textDim, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), textAlign = TextAlign.Center, letterSpacing = 1.sp)
         }
 
         if (injetando) {
@@ -565,7 +579,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = tema.accent)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Injetando...", color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("Injetando...", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -591,31 +605,31 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp)
+            .padding(bottom = 10.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
             .shadow(
                 elevation = if (marcado) 15.dp else 0.dp,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 ambientColor = tema.accent.copy(alpha = glowAlpha),
                 spotColor = tema.accent.copy(alpha = glowAlpha)
             )
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(tema.bgCard.copy(alpha = 0.9f))
             .border(
                 width = 1.dp,
                 color = if (marcado) tema.accent else tema.border,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(18.dp)
             )
             .clickable(enabled = !isEstatico) { onMudar(!marcado) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(titulo, color = if (marcado) Color.White else tema.textMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(titulo, color = if (marcado) Color.White else tema.textMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             Text(desc, color = if (marcado) tema.textMain else tema.textDim, fontSize = 11.sp)
         }
         if (!isEstatico) {
