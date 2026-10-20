@@ -23,7 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Chat // <-- IMPORT CORRIGIDO
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -292,7 +292,7 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Forum, 
+                                imageVector = Icons.Filled.Chat, 
                                 contentDescription = "Discord", 
                                 tint = Color.White, 
                                 modifier = Modifier.size(16.dp)
