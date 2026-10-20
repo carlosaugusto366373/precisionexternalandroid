@@ -289,8 +289,12 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Text("🎮", fontSize = 14.sp) // Emoji do Discord
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_discord),
+                                contentDescription = "Discord",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text("Discord", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -307,8 +311,12 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Text("📞", fontSize = 14.sp) // Emoji do WhatsApp
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_whatsapp),
+                                contentDescription = "WhatsApp",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text("WhatsApp", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
