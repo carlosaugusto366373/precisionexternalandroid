@@ -45,7 +45,6 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import kotlinx.coroutines.delay
 
 class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     
@@ -53,7 +52,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     private var composeView: ComposeView? = null
     private lateinit var params: WindowManager.LayoutParams
     
-    // --- ESTADOS QUE NÃO PERDEM AO MINIMIZAR ---
     private var isMinimized by mutableStateOf(false)
     private var aimAssistAtivo by mutableStateOf(false)
     private var mostrarFpsAtivo by mutableStateOf(true)
@@ -81,7 +79,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     }
 
     private fun iniciarContadorFps() {
-        // Simulação do FPS rodando no Service
         Thread {
             while (true) {
                 if (mostrarFpsAtivo) {
@@ -124,7 +121,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setContent {
                 if (isMinimized) {
-                    // BOLINHA MINIMIZADA (TEMA AZUL)
+                    // Bolinha Azul
                     val infiniteTransition = rememberInfiniteTransition(label = "glow")
                     val glowScale by infiniteTransition.animateFloat(
                         initialValue = 1f, targetValue = 1.1f,
@@ -161,7 +158,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                         )
                     }
                 } else {
-                    // PAINEL ABERTO
+                    // Painel Azul
                     Box(
                         modifier = Modifier
                             .pointerInput(Unit) {
@@ -253,7 +250,6 @@ fun PainelOverlay(
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -261,14 +257,12 @@ fun PainelOverlay(
             ) {
                 Text("QZZ Overlay", color = Color(0xFF00AAFF), fontWeight = FontWeight.Black, fontSize = 14.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Botão Minimizar
                     Box(
                         modifier = Modifier.size(22.dp).clip(CircleShape).background(Color(0xFF1A3050)).clickable { onMinimize() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text("_", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
-                    // Botão Fechar
                     Box(
                         modifier = Modifier.size(22.dp).clip(CircleShape).background(Color(0xFFFF0044)).clickable { onClose() },
                         contentAlignment = Alignment.Center
@@ -278,7 +272,6 @@ fun PainelOverlay(
                 }
             }
             
-            // FPS
             if (isMostrarFpsAtivo) {
                 Row(modifier = Modifier.padding(top = 8.dp)) {
                     Text("FPS: ", color = Color(0xFF88A0C0), fontSize = 12.sp)
@@ -288,7 +281,6 @@ fun PainelOverlay(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Toggle Aim Assist
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,7 +301,6 @@ fun PainelOverlay(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Toggle Mostrar FPS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

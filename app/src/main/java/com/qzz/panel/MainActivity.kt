@@ -65,7 +65,6 @@ data class AppColors(
     val btnText: Color
 )
 
-// Tema Azul Escuro (Padrão agora)
 val TemaAzul = AppColors(Color(0xFF020813), Color(0xFF0A1428), Color(0xFF0F1E3D), Color(0xFF00AAFF), Color(0xFF0066CC), Color(0xFFE0F0FF), Color(0xFF88A0C0), Color(0xFF1A3050), Color(0xFFFFFFFF))
 val TemaVermelho = AppColors(Color(0xFF0A0000), Color(0xFF1A0808), Color(0xFF140808), Color(0xFFFF0044), Color(0xFFCC0033), Color(0xFFF0E0E0), Color(0xFFB08080), Color(0xFF3A2A2A), Color(0xFF1A0000))
 val TemaRoxo = AppColors(Color(0xFF07000F), Color(0xFF170828), Color(0xFF0D0418), Color(0xFF9D4EDD), Color(0xFF5A189A), Color(0xFFEFE0F5), Color(0xFFA58BB0), Color(0xFF33254A), Color(0xFF0A0012))
@@ -85,7 +84,6 @@ fun QzzPanelApp() {
     val prefs = context.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE)
     
     var isLogado by remember { mutableStateOf(prefs.getString("token", null) != null) }
-    // Padrão 0 agora é o Tema Azul
     var temaIndex by remember { mutableIntStateOf(prefs.getInt("tema_index", 0)) }
     val temaAtual = when(temaIndex) { 1 -> TemaVermelho; 2 -> TemaRoxo; else -> TemaAzul }
 
@@ -328,7 +326,6 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
 @Composable
 fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
     var abaSelecionada by remember { mutableIntStateOf(0) }
-    // Removida a aba "ARQUIVOS"
     val abas = listOf("FUNÇÕES", "LAG", "CONTA")
     
     var toggle1 by remember { mutableStateOf(true) }
@@ -382,7 +379,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 .padding(22.dp)
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Botão de trocar tema
                 val infiniteTransition = rememberInfiniteTransition(label = "theme_pulse")
                 val pulseScale by infiniteTransition.animateFloat(
                     initialValue = 1f, targetValue = 1.2f,
@@ -404,7 +400,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 }
 
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Logo abaixo do QZZ X GUTO
                     Image(
                         painter = painterResource(id = R.drawable.logo),
                         contentDescription = "Logo",
@@ -419,7 +414,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Status ONLINE em cima das abas
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -507,7 +501,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                                 Text("🔒", fontSize = 18.sp)
                             }
 
-                            // Notificações agora são mostradas no Toast do toggle
                             CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema) { nome, ativo -> 
                                 Toast.makeText(context, "$nome ${if(ativo) "ativado" else "desativado"}", Toast.LENGTH_SHORT).show()
                             }
@@ -596,7 +589,7 @@ fun CardFuncao(
     onMudar: (Boolean) -> Unit, 
     tema: AppColors, 
     isEstatico: Boolean = false,
-    onNotificar: (String, Boolean) -> Unit = { _, _ -> } // Nova função de notificação
+    onNotificar: (String, Boolean) -> Unit = { _, _ -> }
 ) {
     val scale by animateFloatAsState(
         targetValue = if (marcado) 1.02f else 1f,
