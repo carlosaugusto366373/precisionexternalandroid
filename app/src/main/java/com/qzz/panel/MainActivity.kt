@@ -233,10 +233,38 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // Launcher para pedir permissão de Overlay
+    val overlayPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { 
+        if (Settings.canDrawOverlays(context)) {
+            context.startService(Intent(context, OverlayService::class.java))
+        }
+    }
+
     val seletorArquivo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             arquivoUri = uri
             Toast.makeText(context, "Arquivo .zip carregado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Função para injetar e abrir overlay
+    val injetarEAbrir = {
+        injetando = true
+        scope.launch {
+            kotlinx.coroutines.delay(3000)
+            injetando = false
+            Toast.makeText(context, "Overlay Ativado!", Toast.LENGTH_SHORT).show()
+            
+            // Checa permissão de overlay
+            if (!Settings.canDrawOverlays(context)) {
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                overlayPermissionLauncher.launch(intent)
+            } else {
+                context.startService(Intent(context, OverlayService::class.java))
+            }
+            
+            // Abre o jogo
+            executarExploit(context)
         }
     }
 
@@ -310,6 +338,28 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             ) {
                 when (abaSelecionada) {
                     0 -> {
+                        // AIM ASSIST BLOQUEADO
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(tema.bgCard.copy(alpha = 0.5f)) // Mais escuro/transparente
+                                .border(1.dp, tema.border, RoundedCornerShape(16.dp))
+                                .clickable { 
+                                    Toast.makeText(context, "Injete as funções para liberar o Overlay do Aim Assist!", Toast.LENGTH_LONG).show()
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Aim Assist (Overlay)", color = tema.textDim, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Requer injeção para desbloquear", color = tema.border, fontSize = 11.sp)
+                            }
+                            Text("🔒", fontSize = 18.sp)
+                        }
+
                         CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema)
                         CardFuncao("Reduzir recoil", "Controle de recuo", toggle2, { toggle2 = it }, tema)
                         CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema)
@@ -375,14 +425,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = {
-                        injetando = true
-                        scope.launch {
-                            kotlinx.coroutines.delay(3000)
-                            executarExploit(context)
-                            injetando = false
-                        }
-                    },
+                    onClick = { injetarEAbrir() },
                     modifier = Modifier.weight(1f).fillMaxHeight().shadow(10.dp, RoundedCornerShape(20.dp), ambientColor = tema.accentDark),
                     colors = ButtonDefaults.buttonColors(containerColor = tema.accentDark),
                     shape = RoundedCornerShape(20.dp),
@@ -392,14 +435,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 }
 
                 Button(
-                    onClick = {
-                        injetando = true
-                        scope.launch {
-                            kotlinx.coroutines.delay(4000)
-                            executarExploit(context)
-                            injetando = false
-                        }
-                    },
+                    onClick = { injetarEAbrir() },
                     modifier = Modifier.weight(1f).fillMaxHeight().shadow(15.dp, RoundedCornerShape(20.dp), ambientColor = tema.accent),
                     colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
                     shape = RoundedCornerShape(20.dp),
@@ -447,7 +483,6 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
             Text(desc, color = if (marcado) tema.textMain else tema.textDim, fontSize = 11.sp)
         }
         if (!isEstatico) {
-            // Switch estilo iOS
             Box(
                 modifier = Modifier
                     .width(44.dp)
