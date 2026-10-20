@@ -24,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -112,24 +114,24 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
-                .clip(RoundedCornerShape(28.dp))
+                .shadow(20.dp, RoundedCornerShape(32.dp), ambientColor = tema.accent, spotColor = tema.accent)
+                .clip(RoundedCornerShape(32.dp))
                 .background(tema.bgPanel)
-                .border(1.dp, tema.accent, RoundedCornerShape(28.dp))
+                .border(1.dp, tema.accent.copy(alpha = 0.4f), RoundedCornerShape(32.dp))
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo da pasta drawable (renomeie a imagem para logo.jpg)
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Logo",
-                modifier = Modifier.size(80.dp).clip(CircleShape).border(3.dp, tema.accent, CircleShape),
+                modifier = Modifier.size(90.dp).clip(CircleShape).border(3.dp, tema.accent, CircleShape),
                 contentScale = ContentScale.Crop
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Text(text = "GUTO x QZZ", color = tema.accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
-            Text(text = "ACESSO PREMIUM • PAYPAL", color = tema.textDim, fontSize = 10.sp, letterSpacing = 2.sp)
+            Text(text = "GUTO x QZZ", color = tema.accent, fontSize = 34.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+            Text(text = "ACESSO PREMIUM • PAYPAL", color = tema.textDim, fontSize = 11.sp, letterSpacing = 2.sp)
             
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -146,11 +148,11 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
                     focusedIndicatorColor = tema.accent,
                     unfocusedIndicatorColor = tema.border
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
@@ -170,15 +172,15 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(54.dp).shadow(10.dp, RoundedCornerShape(16.dp), ambientColor = tema.accent),
                 colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 enabled = !carregando
             ) {
                 if (carregando) {
                     CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                    Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
                 }
             }
         }
@@ -206,47 +208,56 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
         }
     }
 
+    val gradientBg = Brush.verticalGradient(colors = listOf(tema.bgMain, tema.bgPanel))
+
     Box(
-        modifier = Modifier.fillMaxSize().background(tema.bgMain),
+        modifier = Modifier.fillMaxSize().background(gradientBg),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.90f)
-                .clip(RoundedCornerShape(28.dp))
+                .fillMaxHeight(0.92f)
+                .shadow(25.dp, RoundedCornerShape(32.dp), ambientColor = tema.accent, spotColor = tema.accent)
+                .clip(RoundedCornerShape(32.dp))
                 .background(tema.bgPanel)
-                .border(1.dp, tema.accent, RoundedCornerShape(28.dp))
-                .padding(20.dp)
+                .border(1.dp, tema.accent.copy(alpha = 0.3f), RoundedCornerShape(32.dp))
+                .padding(24.dp)
         ) {
             // Header
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Trocar Tema
+                // Botão de Trocar Tema
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(28.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(tema.bgCard)
-                        .border(2.dp, tema.border, CircleShape)
+                        .border(1.dp, tema.border, CircleShape)
                         .clickable { onTrocarTema() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(tema.accent))
+                    Box(
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(tema.accent, tema.accentDark)))
+                            .shadow(10.dp, CircleShape, ambientColor = tema.accent)
+                    )
                 }
 
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("QZZ x GUTO", color = tema.accent, fontSize = 26.sp, fontWeight = FontWeight.Black)
-                    Text("Premium • PayPal", color = tema.textDim, fontSize = 12.sp)
+                    Text("QZZ x GUTO", color = tema.accent, fontSize = 28.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Text("Premium • PayPal", color = tema.textDim, fontSize = 12.sp, letterSpacing = 2.sp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Abas
             Row(
-                modifier = Modifier.fillMaxWidth().height(36.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 abas.forEachIndexed { index, titulo ->
                     val selecionada = index == abaSelecionada
@@ -254,23 +265,23 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(if (selecionada) tema.accent else tema.bgCard)
-                            .border(1.dp, if (selecionada) tema.accent else tema.border, RoundedCornerShape(12.dp))
                             .clickable { abaSelecionada = index },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = titulo,
                             color = if (selecionada) tema.btnText else tema.textDim,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Conteúdo
             Column(
@@ -290,58 +301,60 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .height(140.dp)
+                                .clip(RoundedCornerShape(20.dp))
                                 .background(tema.bgCard)
-                                .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(16.dp))
+                                .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(20.dp))
                                 .clickable { seletorArquivo.launch("application/zip") },
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("📦", fontSize = 32.sp)
+                                Text("📦", fontSize = 40.sp, modifier = Modifier.padding(bottom = 8.dp))
                                 Text(
-                                    text = if (arquivoUri != null) "Arquivo carregado" else "Selecionar arquivo .zip",
+                                    text = if (arquivoUri != null) "Arquivo carregado!" else "Toque para selecionar .zip",
                                     color = tema.textMain,
-                                    fontSize = 14.sp
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { Toast.makeText(context, "Arquivo Injetado", Toast.LENGTH_SHORT).show() },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
                             enabled = arquivoUri != null,
-                            shape = RoundedCornerShape(14.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Bold)
+                            Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 14.sp)
                         }
                     }
                     3 -> { // Conta
                         val expiry = LocalContext.current.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE).getLong("expiry", 0L)
                         val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
+                        
                         CardFuncao("Expira em", dataStr, false, {}, tema, isEstatico = true)
                         CardFuncao("Plataforma", "Android Nativo", false, {}, tema, isEstatico = true)
                         
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                         Button(
                             onClick = onSair,
-                            modifier = Modifier.fillMaxWidth().border(1.dp, tema.accent, RoundedCornerShape(14.dp)),
+                            modifier = Modifier.fillMaxWidth().height(50.dp).border(1.dp, tema.accent, RoundedCornerShape(16.dp)),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                            shape = RoundedCornerShape(14.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text("SAIR DA CONTA", color = tema.accent, fontWeight = FontWeight.Bold)
+                            Text("SAIR DA CONTA", color = tema.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Botões de Injeção
             Row(
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
                     onClick = {
@@ -352,12 +365,12 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             injetando = false
                         }
                     },
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight().shadow(10.dp, RoundedCornerShape(18.dp), ambientColor = tema.accentDark),
                     colors = ButtonDefaults.buttonColors(containerColor = tema.accentDark),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(18.dp),
                     enabled = !injetando
                 ) {
-                    Text("INJETAR FF\nNORMAL", color = Color.White, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 12.sp)
+                    Text("INJETAR FF\nNORMAL", color = Color.White, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
                 }
 
                 Button(
@@ -369,15 +382,16 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             injetando = false
                         }
                     },
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight().shadow(15.dp, RoundedCornerShape(18.dp), ambientColor = tema.accent),
                     colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(18.dp),
                     enabled = !injetando
                 ) {
-                    Text("INJETAR FF\nMAX", color = tema.btnText, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 12.sp)
+                    Text("INJETAR FF\nMAX", color = tema.btnText, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
                 }
             }
-            Text("Android • Overlay", color = tema.textDim, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center)
+            
+            Text("Android • Overlay", color = tema.textDim.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), textAlign = TextAlign.Center, letterSpacing = 2.sp)
         }
 
         // Overlay de Carregamento
@@ -386,7 +400,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = tema.accent)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Injetando...", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Injetando...", color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
             }
         }
@@ -398,18 +412,20 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(tema.bgCard)
-            .border(1.dp, if (marcado) tema.accent else tema.border, RoundedCornerShape(16.dp))
+            .padding(bottom = 12.dp)
+            .shadow(if (marcado) 8.dp else 0.dp, RoundedCornerShape(20.dp), ambientColor = tema.accent.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (marcado) tema.bgCard.copy(alpha = 0.9f) else tema.bgCard)
+            .border(1.dp, if (marcado) tema.accent.copy(alpha = 0.6f) else tema.border, RoundedCornerShape(20.dp))
             .clickable(enabled = !isEstatico) { onMudar(!marcado) }
-            .padding(16.dp),
+            .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
-            Text(titulo, color = tema.textMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(desc, color = tema.textDim, fontSize = 11.sp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(titulo, color = tema.textMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(desc, color = tema.textDim, fontSize = 12.sp)
         }
         if (!isEstatico) {
             Switch(
@@ -418,8 +434,9 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
                     checkedTrackColor = tema.accent,
-                    uncheckedThumbColor = Color.Gray,
-                    uncheckedTrackColor = tema.border
+                    uncheckedThumbColor = tema.textDim,
+                    uncheckedTrackColor = tema.bgMain,
+                    uncheckedBorderColor = tema.border
                 )
             )
         }
