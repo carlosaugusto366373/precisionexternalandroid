@@ -12,8 +12,10 @@ import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,6 +46,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     
     private lateinit var windowManager: WindowManager
     private var composeView: ComposeView? = null
+    private lateinit var params: WindowManager.LayoutParams
+    
+    private var isMinimized by mutableStateOf(false)
     
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
@@ -62,10 +70,23 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         return START_STICKY
     }
 
+    private fun atualizarLayout() {
+        if (isMinimized) {
+            params.width = WindowManager.LayoutParams.WRAP_CONTENT
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT
+            params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        } else {
+            params.width = WindowManager.LayoutParams.WRAP_CONTENT
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT
+            params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        }
+        composeView?.let { windowManager.updateViewLayout(it, params) }
+    }
+
     private fun mostrarOverlay() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         
-        val params = WindowManager.LayoutParams(
+        params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
@@ -80,73 +101,55 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             setViewTreeLifecycleOwner(this@OverlayService)
             setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setContent {
-                var aimAssist by remember { mutableStateOf(false) }
-                var mostrarFps by remember { mutableStateOf(true) }
-                var fpsAtual by remember { mutableIntStateOf(60) }
-
-                LaunchedEffect(mostrarFps) {
-                    while(mostrarFps) {
-                        fpsAtual = (58..62).random()
-                        delay(1000)
-                    }
-                }
-
-                Card(
-                    modifier = Modifier
-                        .width(200.dp)
-                        .padding(8.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xEE1A0808)),
-                    border = BorderStroke(1.dp, Color(0xFFFF0044)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("QZZ Overlay", color = Color(0xFFFF0044), fontWeight = FontWeight.Black, fontSize = 12.sp)
-                            Box(
-                                modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(0xFFFF0044)).clickable {
-                                    stopSelf() // Fecha o overlay
-                                },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("X", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                if (isMinimized) {
+                    // BOLINHA MINIMIZADA E ARRASTÁVEL
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xEE1A0808))
+                            .border(2.dp, Color(0xFFFF0044), CircleShape)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    params.x += dragAmount.x.toInt()
+                                    params.y += dragAmount.y.toInt()
+                                    windowManager.updateViewLayout(this@apply, params)
+                                }
                             }
-                        }
-                        
-                        if (mostrarFps) {
-                            Text("FPS: $fpsAtual", color = Color(0xFF30D158), fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
-                        }
-                        
-                        Spacer(modifier = Modifier.height(10.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Aim Assist", color = Color.White, fontSize = 12.sp)
-                            Switch(
-                                checked = aimAssist,
-                                onCheckedChange = { aimAssist = it },
-                                colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFFF0044))
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Mostrar FPS", color = Color.White, fontSize = 12.sp)
-                            Switch(
-                                checked = mostrarFps,
-                                onCheckedChange = { mostrarFps = it },
-                                colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFFF0044))
-                            )
-                        }
+                            .clickable { 
+                                isMinimized = false 
+                                atualizarLayout()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logo),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(40.dp).clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                } else {
+                    // PAINEL ABERTO E ARRASTÁVEL
+                    Box(
+                        modifier = Modifier
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    params.x += dragAmount.x.toInt()
+                                    params.y += dragAmount.y.toInt()
+                                    windowManager.updateViewLayout(this@apply, params)
+                                }
+                            }
+                    ) {
+                        PainelOverlay(
+                            onMinimize = { 
+                                isMinimized = true 
+                                atualizarLayout()
+                            },
+                            onClose = { stopSelf() }
+                        )
                     }
                 }
             }
@@ -184,7 +187,84 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
+    override fun onBind(intent: Intent?): IBinder? = null
+}
+
+@Composable
+fun PainelOverlay(onMinimize: () -> Unit, onClose: () -> Unit) {
+    var aimAssist by remember { mutableStateOf(false) }
+    var mostrarFps by remember { mutableStateOf(true) }
+    var fpsAtual by remember { mutableIntStateOf(60) }
+
+    LaunchedEffect(mostrarFps) {
+        while(mostrarFps) {
+            fpsAtual = (58..62).random()
+            delay(1000)
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xEE1A0808)),
+        border = BorderStroke(1.dp, Color(0xFFFF0044)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("QZZ Overlay", color = Color(0xFFFF0044), fontWeight = FontWeight.Black, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF444444)).clickable { onMinimize() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("_", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Box(
+                        modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(0xFFFF0044)).clickable { onClose() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("X", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            
+            if (mostrarFps) {
+                Text("FPS: $fpsAtual", color = Color(0xFF30D158), fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Aim Assist", color = Color.White, fontSize = 12.sp)
+                Switch(
+                    checked = aimAssist,
+                    onCheckedChange = { aimAssist = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFFF0044))
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Mostrar FPS", color = Color.White, fontSize = 12.sp)
+                Switch(
+                    checked = mostrarFps,
+                    onCheckedChange = { mostrarFps = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFFF0044))
+                )
+            }
+        }
     }
 }
