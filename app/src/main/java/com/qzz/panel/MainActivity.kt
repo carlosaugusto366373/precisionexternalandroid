@@ -65,9 +65,10 @@ data class AppColors(
     val btnText: Color
 )
 
+// Tema Azul Escuro (Padrão agora)
+val TemaAzul = AppColors(Color(0xFF020813), Color(0xFF0A1428), Color(0xFF0F1E3D), Color(0xFF00AAFF), Color(0xFF0066CC), Color(0xFFE0F0FF), Color(0xFF88A0C0), Color(0xFF1A3050), Color(0xFFFFFFFF))
 val TemaVermelho = AppColors(Color(0xFF0A0000), Color(0xFF1A0808), Color(0xFF140808), Color(0xFFFF0044), Color(0xFFCC0033), Color(0xFFF0E0E0), Color(0xFFB08080), Color(0xFF3A2A2A), Color(0xFF1A0000))
 val TemaRoxo = AppColors(Color(0xFF07000F), Color(0xFF170828), Color(0xFF0D0418), Color(0xFF9D4EDD), Color(0xFF5A189A), Color(0xFFEFE0F5), Color(0xFFA58BB0), Color(0xFF33254A), Color(0xFF0A0012))
-val TemaPreto = AppColors(Color(0xFF000000), Color(0xFF1C1C1E), Color(0xFF111111), Color(0xFF30D158), Color(0xFF248A3D), Color(0xFFFFFFFF), Color(0xFF8E8E93), Color(0xFF333333), Color(0xFF000000))
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,8 +85,9 @@ fun QzzPanelApp() {
     val prefs = context.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE)
     
     var isLogado by remember { mutableStateOf(prefs.getString("token", null) != null) }
+    // Padrão 0 agora é o Tema Azul
     var temaIndex by remember { mutableIntStateOf(prefs.getInt("tema_index", 0)) }
-    val temaAtual = when(temaIndex) { 1 -> TemaRoxo; 2 -> TemaPreto; else -> TemaVermelho }
+    val temaAtual = when(temaIndex) { 1 -> TemaVermelho; 2 -> TemaRoxo; else -> TemaAzul }
 
     LaunchedEffect(isLogado) {
         if (isLogado) {
@@ -326,7 +328,8 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
 @Composable
 fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
     var abaSelecionada by remember { mutableIntStateOf(0) }
-    val abas = listOf("FUNÇÕES", "LAG", "ARQUIVOS", "CONTA")
+    // Removida a aba "ARQUIVOS"
+    val abas = listOf("FUNÇÕES", "LAG", "CONTA")
     
     var toggle1 by remember { mutableStateOf(true) }
     var toggle2 by remember { mutableStateOf(false) }
@@ -336,20 +339,12 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
     var toggleLag2 by remember { mutableStateOf(false) }
     
     var injetando by remember { mutableStateOf(false) }
-    var arquivoUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val overlayPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { 
         if (Settings.canDrawOverlays(context)) {
             context.startService(Intent(context, OverlayService::class.java))
-        }
-    }
-
-    val seletorArquivo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            arquivoUri = uri
-            Toast.makeText(context, "Arquivo .zip carregado", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -387,6 +382,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 .padding(22.dp)
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
+                // Botão de trocar tema
                 val infiniteTransition = rememberInfiniteTransition(label = "theme_pulse")
                 val pulseScale by infiniteTransition.animateFloat(
                     initialValue = 1f, targetValue = 1.2f,
@@ -408,12 +404,48 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 }
 
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Logo abaixo do QZZ X GUTO
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(60.dp).clip(CircleShape).border(2.dp, tema.accent, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text("QZZ x GUTO", color = tema.accent, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     Text("Premium • PayPal", color = tema.textDim, fontSize = 12.sp, letterSpacing = 1.sp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Status ONLINE em cima das abas
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(tema.accent.copy(alpha = 0.1f))
+                        .border(1.dp, tema.accent.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    val dotAlpha by rememberInfiniteTransition(label = "online_dot").animateFloat(
+                        initialValue = 0.3f, targetValue = 1f,
+                        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha"
+                    )
+                    Box(
+                        modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF00FF44).copy(alpha = dotAlpha))
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("ONLINE", color = Color(0xFF00FF44), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth().height(40.dp),
@@ -475,46 +507,26 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                                 Text("🔒", fontSize = 18.sp)
                             }
 
-                            CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema)
-                            CardFuncao("Reduzir recoil", "Controle de recuo", toggle2, { toggle2 = it }, tema)
-                            CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema)
+                            // Notificações agora são mostradas no Toast do toggle
+                            CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema) { nome, ativo -> 
+                                Toast.makeText(context, "$nome ${if(ativo) "ativado" else "desativado"}", Toast.LENGTH_SHORT).show()
+                            }
+                            CardFuncao("Reduzir recoil", "Controle de recuo", toggle2, { toggle2 = it }, tema) { nome, ativo -> 
+                                Toast.makeText(context, "$nome ${if(ativo) "ativado" else "desativado"}", Toast.LENGTH_SHORT).show()
+                            }
+                            CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema) { nome, ativo -> 
+                                Toast.makeText(context, "$nome ${if(ativo) "ativado" else "desativado"}", Toast.LENGTH_SHORT).show()
+                            }
                         }
                         1 -> {
-                            CardFuncao("Reduzir lag", "Otimização de rede", toggleLag1, { toggleLag1 = it }, tema)
-                            CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", toggleLag2, { toggleLag2 = it }, tema)
+                            CardFuncao("Reduzir lag", "Otimização de rede", toggleLag1, { toggleLag1 = it }, tema) { nome, ativo -> 
+                                Toast.makeText(context, "$nome ${if(ativo) "ativado" else "desativado"}", Toast.LENGTH_SHORT).show()
+                            }
+                            CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", toggleLag2, { toggleLag2 = it }, tema) { nome, ativo -> 
+                                Toast.makeText(context, "$nome ${if(ativo) "ativado" else "desativado"}", Toast.LENGTH_SHORT).show()
+                            }
                         }
                         2 -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(130.dp)
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(tema.accent.copy(alpha = 0.05f))
-                                    .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(18.dp))
-                                    .clickable { seletorArquivo.launch("application/zip") },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("📦", fontSize = 40.sp)
-                                    Text(
-                                        text = if (arquivoUri != null) "Arquivo carregado" else "Selecionar arquivo .zip",
-                                        color = tema.textMain,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = { Toast.makeText(context, "Arquivo Injetado", Toast.LENGTH_SHORT).show() },
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                                enabled = arquivoUri != null,
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        3 -> {
                             val expiry = LocalContext.current.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE).getLong("expiry", 0L)
                             val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
                             
@@ -577,7 +589,15 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 }
 
 @Composable
-fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean) -> Unit, tema: AppColors, isEstatico: Boolean = false) {
+fun CardFuncao(
+    titulo: String, 
+    desc: String, 
+    marcado: Boolean, 
+    onMudar: (Boolean) -> Unit, 
+    tema: AppColors, 
+    isEstatico: Boolean = false,
+    onNotificar: (String, Boolean) -> Unit = { _, _ -> } // Nova função de notificação
+) {
     val scale by animateFloatAsState(
         targetValue = if (marcado) 1.02f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
@@ -613,7 +633,10 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
                 color = if (marcado) tema.accent else tema.border,
                 shape = RoundedCornerShape(18.dp)
             )
-            .clickable(enabled = !isEstatico) { onMudar(!marcado) }
+            .clickable(enabled = !isEstatico) { 
+                onMudar(!marcado) 
+                if (!isEstatico) onNotificar(titulo, !marcado)
+            }
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -640,7 +663,10 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
                     .height(24.dp)
                     .clip(CircleShape)
                     .background(trackColor)
-                    .clickable { onMudar(!marcado) }
+                    .clickable { 
+                        onMudar(!marcado) 
+                        if (!isEstatico) onNotificar(titulo, !marcado)
+                    }
                     .padding(2.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
