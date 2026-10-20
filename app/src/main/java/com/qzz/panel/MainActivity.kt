@@ -106,7 +106,6 @@ fun QzzPanelApp() {
 fun FundoAnimado(tema: AppColors) {
     Box(modifier = Modifier.fillMaxSize().background(tema.bgMain)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Simulando os orbs com gradientes radiais
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(tema.accent.copy(alpha = 0.3f), Color.Transparent),
@@ -126,7 +125,6 @@ fun FundoAnimado(tema: AppColors) {
                 center = Offset(size.width * 0.9f, size.height * 0.8f)
             )
         }
-        // Linhas do HTML
         Canvas(modifier = Modifier.fillMaxSize()) {
             val lineColor = tema.accent.copy(alpha = 0.2f)
             drawLine(color = lineColor, start = Offset(0f, size.height * 0.3f), end = Offset(size.width, size.height * 0.3f), strokeWidth = 2f)
@@ -262,9 +260,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 .border(1.dp, tema.accent.copy(alpha = 0.4f), RoundedCornerShape(28.dp))
                 .padding(20.dp)
         ) {
-            // Header
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Trocar Tema (Bolinha)
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -286,7 +282,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Abas
             Row(
                 modifier = Modifier.fillMaxWidth().height(36.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -315,21 +310,20 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Conteúdo
             Column(
                 modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
             ) {
                 when (abaSelecionada) {
-                    0 -> { // Funções
+                    0 -> {
                         CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema)
                         CardFuncao("Reduzir recoil", "Controle de recuo", toggle2, { toggle2 = it }, tema)
                         CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema)
                     }
-                    1 -> { // Lag
+                    1 -> {
                         CardFuncao("Reduzir lag", "Otimização de rede", toggleLag1, { toggleLag1 = it }, tema)
                         CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", toggleLag2, { toggleLag2 = it }, tema)
                     }
-                    2 -> { // Arquivos
+                    2 -> {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -360,7 +354,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                             Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Bold)
                         }
                     }
-                    3 -> { // Conta
+                    3 -> {
                         val expiry = LocalContext.current.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE).getLong("expiry", 0L)
                         val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
                         
@@ -370,7 +364,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Sair da conta",
-                            color = tema.textDark,
+                            color = tema.textDim, // <-- CORRIGIDO AQUI
                             fontSize = 12.sp,
                             modifier = Modifier.fillMaxWidth().clickable { onSair() }.padding(10.dp),
                             textAlign = TextAlign.Center
@@ -381,7 +375,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botões de Injeção (Estilo do HTML)
             Row(
                 modifier = Modifier.fillMaxWidth().height(60.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -424,7 +417,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             Text("Android • Overlay", color = tema.textDim, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center, letterSpacing = 1.sp)
         }
 
-        // Overlay de Carregamento
         if (injetando) {
             Box(modifier = Modifier.fillMaxSize().background(Color(0xCC000000)), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -460,7 +452,6 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
             Text(desc, color = if (marcado) tema.textMain else tema.textDim, fontSize = 11.sp)
         }
         if (!isEstatico) {
-            // Bolinha de Status (como no HTML)
             Box(
                 modifier = Modifier
                     .size(16.dp)
