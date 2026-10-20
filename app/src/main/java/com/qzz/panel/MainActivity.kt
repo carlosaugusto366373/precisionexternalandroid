@@ -22,9 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat // <-- IMPORT CORRIGIDO
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -280,6 +277,7 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Botão Discord
                     Button(
                         onClick = { uriHandler.openUri("https://discord.gg/MfY4EAFKnf") },
                         modifier = Modifier.weight(1f).height(46.dp),
@@ -291,17 +289,13 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Chat, 
-                                contentDescription = "Discord", 
-                                tint = Color.White, 
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Text("🎮", fontSize = 14.sp) // Emoji do Discord
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Discord", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
+                    // Botão WhatsApp
                     Button(
                         onClick = { uriHandler.openUri("https://whatsapp.com/channel/0029Vb8FZ022Jl87vqng8E2v") },
                         modifier = Modifier.weight(1f).height(46.dp),
@@ -313,12 +307,7 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Phone, 
-                                contentDescription = "WhatsApp", 
-                                tint = Color.White, 
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Text("📞", fontSize = 14.sp) // Emoji do WhatsApp
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("WhatsApp", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
