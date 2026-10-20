@@ -11,10 +11,11 @@ import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border // <-- IMPORT FALTANDO
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -25,8 +26,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
@@ -50,7 +53,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     private var composeView: ComposeView? = null
     private lateinit var params: WindowManager.LayoutParams
     
+    // --- ESTADOS QUE NÃO PERDEM AO MINIMIZAR ---
     private var isMinimized by mutableStateOf(false)
+    private var aimAssistAtivo by mutableStateOf(false)
+    private var mostrarFpsAtivo by mutableStateOf(true)
+    private var fpsAtual by mutableIntStateOf(60)
     
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
@@ -68,8 +75,21 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         if (composeView == null) {
             criarNotificacao()
             mostrarOverlay()
+            iniciarContadorFps()
         }
         return START_STICKY
+    }
+
+    private fun iniciarContadorFps() {
+        // Simulação do FPS rodando no Service
+        Thread {
+            while (true) {
+                if (mostrarFpsAtivo) {
+                    fpsAtual = (58..62).random()
+                }
+                Thread.sleep(1000)
+            }
+        }.start()
     }
 
     private fun atualizarLayout() {
@@ -104,13 +124,21 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setContent {
                 if (isMinimized) {
-                    // BOLINHA MINIMIZADA E ARRASTÁVEL
+                    // BOLINHA MINIMIZADA (TEMA AZUL)
+                    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+                    val glowScale by infiniteTransition.animateFloat(
+                        initialValue = 1f, targetValue = 1.1f,
+                        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "scale"
+                    )
+
                     Box(
                         modifier = Modifier
                             .size(60.dp)
+                            .graphicsLayer { scaleX = glowScale; scaleY = glowScale }
                             .clip(CircleShape)
-                            .background(Color(0xEE1A0808))
-                            .border(2.dp, Color(0xFFFF0044), CircleShape)
+                            .background(Brush.radialGradient(listOf(Color(0xFF0F1E3D), Color(0xFF020813))))
+                            .border(2.dp, Color(0xFF00AAFF), CircleShape)
+                            .shadow(15.dp, CircleShape, ambientColor = Color(0xFF00AAFF))
                             .pointerInput(Unit) {
                                 detectDragGestures { change, dragAmount ->
                                     change.consume()
@@ -133,7 +161,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                         )
                     }
                 } else {
-                    // PAINEL ABERTO E ARRASTÁVEL
+                    // PAINEL ABERTO
                     Box(
                         modifier = Modifier
                             .pointerInput(Unit) {
@@ -148,6 +176,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                             }
                     ) {
                         PainelOverlay(
+                            isAimAssistAtivo = aimAssistAtivo,
+                            onAimAssistChange = { aimAssistAtivo = it },
+                            isMostrarFpsAtivo = mostrarFpsAtivo,
+                            onMostrarFpsChange = { mostrarFpsAtivo = it },
+                            fps = fpsAtual,
                             onMinimize = { 
                                 isMinimized = true 
                                 atualizarLayout()
@@ -195,42 +228,49 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 }
 
 @Composable
-fun PainelOverlay(onMinimize: () -> Unit, onClose: () -> Unit) {
-    var aimAssist by remember { mutableStateOf(false) }
-    var mostrarFps by remember { mutableStateOf(true) }
-    var fpsAtual by remember { mutableIntStateOf(60) }
-
-    LaunchedEffect(mostrarFps) {
-        while(mostrarFps) {
-            fpsAtual = (58..62).random()
-            delay(1000)
-        }
-    }
+fun PainelOverlay(
+    isAimAssistAtivo: Boolean,
+    onAimAssistChange: (Boolean) -> Unit,
+    isMostrarFpsAtivo: Boolean,
+    onMostrarFpsChange: (Boolean) -> Unit,
+    fps: Int,
+    onMinimize: () -> Unit,
+    onClose: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+    val borderAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "alpha"
+    )
 
     Card(
         modifier = Modifier
-            .width(200.dp)
-            .padding(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xEE1A0808)),
-        border = BorderStroke(1.dp, Color(0xFFFF0044)),
-        shape = RoundedCornerShape(12.dp)
+            .width(220.dp)
+            .padding(8.dp)
+            .shadow(15.dp, RoundedCornerShape(16.dp), ambientColor = Color(0xFF00AAFF).copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xEE0A1428)),
+        border = BorderStroke(1.dp, Color(0xFF00AAFF).copy(alpha = borderAlpha)),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("QZZ Overlay", color = Color(0xFFFF0044), fontWeight = FontWeight.Black, fontSize = 12.sp)
+                Text("QZZ Overlay", color = Color(0xFF00AAFF), fontWeight = FontWeight.Black, fontSize = 14.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Botão Minimizar
                     Box(
-                        modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(0xFF444444)).clickable { onMinimize() },
+                        modifier = Modifier.size(22.dp).clip(CircleShape).background(Color(0xFF1A3050)).clickable { onMinimize() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text("_", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
+                    // Botão Fechar
                     Box(
-                        modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(0xFFFF0044)).clickable { onClose() },
+                        modifier = Modifier.size(22.dp).clip(CircleShape).background(Color(0xFFFF0044)).clickable { onClose() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text("X", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -238,35 +278,53 @@ fun PainelOverlay(onMinimize: () -> Unit, onClose: () -> Unit) {
                 }
             }
             
-            if (mostrarFps) {
-                Text("FPS: $fpsAtual", color = Color(0xFF30D158), fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+            // FPS
+            if (isMostrarFpsAtivo) {
+                Row(modifier = Modifier.padding(top = 8.dp)) {
+                    Text("FPS: ", color = Color(0xFF88A0C0), fontSize = 12.sp)
+                    Text("$fps", color = Color(0xFF00FF44), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
             }
             
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
+            // Toggle Aim Assist
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Aim Assist", color = Color.White, fontSize = 12.sp)
+                Text("Aim Assist", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Switch(
-                    checked = aimAssist,
-                    onCheckedChange = { aimAssist = it },
-                    colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFFF0044))
+                    checked = isAimAssistAtivo,
+                    onCheckedChange = onAimAssistChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF00AAFF),
+                        uncheckedThumbColor = Color.Gray,
+                        uncheckedTrackColor = Color(0xFF1A3050)
+                    )
                 )
             }
 
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Toggle Mostrar FPS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Mostrar FPS", color = Color.White, fontSize = 12.sp)
+                Text("Mostrar FPS", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Switch(
-                    checked = mostrarFps,
-                    onCheckedChange = { mostrarFps = it },
-                    colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFFF0044))
+                    checked = isMostrarFpsAtivo,
+                    onCheckedChange = onMostrarFpsChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF00AAFF),
+                        uncheckedThumbColor = Color.Gray,
+                        uncheckedTrackColor = Color(0xFF1A3050)
+                    )
                 )
             }
         }
