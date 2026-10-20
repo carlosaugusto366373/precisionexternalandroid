@@ -3,6 +3,7 @@ package com.qzz.panel
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
@@ -23,21 +24,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewTreeLifecycleOwner
-import androidx.compose.ui.platform.ViewTreeSavedStateRegistryOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.delay
 
-class OverlayService : LifecycleService() {
+class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
+    
     private lateinit var windowManager: WindowManager
     private var composeView: ComposeView? = null
+    
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+
+    override val lifecycle: Lifecycle get() = lifecycleRegistry
+    override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
+
+    override fun onCreate() {
+        super.onCreate()
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        
         if (composeView == null) {
             criarNotificacao()
             mostrarOverlay()
@@ -74,7 +91,6 @@ class OverlayService : LifecycleService() {
                     }
                 }
 
-                // Design do Overlay Flutuante
                 Card(
                     modifier = Modifier
                         .width(200.dp)
@@ -106,7 +122,6 @@ class OverlayService : LifecycleService() {
                         
                         Spacer(modifier = Modifier.height(10.dp))
                         
-                        // Toggle Aim Assist
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -120,7 +135,6 @@ class OverlayService : LifecycleService() {
                             )
                         }
 
-                        // Toggle Mostrar FPS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -167,10 +181,10 @@ class OverlayService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         composeView?.let { windowManager.removeView(it) }
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        super.onBind(intent)
+    override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 }

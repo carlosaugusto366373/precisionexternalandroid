@@ -33,6 +33,8 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.7.0") // <-- ADICIONADO
+    implementation("androidx.savedstate:savedstate-ktx:1.2.1")   // <-- ADICIONADO
     implementation("androidx.activity:activity-compose:1.8.2")
     
     // Jetpack Compose (Interface)
