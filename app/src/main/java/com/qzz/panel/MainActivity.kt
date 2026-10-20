@@ -86,30 +86,46 @@ fun QzzPanelApp() {
     var temaIndex by remember { mutableIntStateOf(prefs.getInt("tema_index", 0)) }
     val temaAtual = when(temaIndex) { 1 -> TemaRoxo; 2 -> TemaPreto; else -> TemaVermelho }
 
-    // --- VERIFICADOR DE EXPIRAÇÃO (SESSION WATCHER) ---
+    // --- VERIFICADOR DE SESSÃO E EXPIRAÇÃO (API) ---
     LaunchedEffect(isLogado) {
         if (isLogado) {
             while (true) {
                 val expiry = prefs.getLong("expiry", 0L)
                 val agora = System.currentTimeMillis()
                 
+                // 1. Checa se expirou localmente (data e hora)
                 if (expiry > 0 && agora >= expiry) {
                     prefs.edit().clear().apply()
                     isLogado = false
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "⚠ Sua key expirou! Faça login novamente.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "⚠ Sua key expirou!", Toast.LENGTH_LONG).show()
                     }
                     break
                 }
-                delay(30000) // Checa a cada 30 segundos
+                
+                // 2. Checa no servidor se a key foi banida/revogada
+                val key = prefs.getString("key_salva", null)
+                if (key != null) {
+                    val aindaValida = checarSessaoNoServidor(key, context)
+                    if (!aindaValida) {
+                        prefs.edit().clear().apply()
+                        isLogado = false
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "⚠ Sua key foi banida ou revogada!", Toast.LENGTH_LONG).show()
+                        }
+                        break
+                    }
+                }
+                
+                delay(15000) // Checa a cada 15 segundos
             }
         }
     }
 
     AnimatedContent(targetState = isLogado, label = "tela_transicao") { logado ->
         if (!logado) {
-            TelaLogin(temaAtual, onLoginSucesso = { expiry ->
-                prefs.edit().putString("token", "salvo").putLong("expiry", expiry).apply()
+            TelaLogin(temaAtual, onLoginSucesso = { expiry, keyDigitada ->
+                prefs.edit().putString("token", "salvo").putString("key_salva", keyDigitada).putLong("expiry", expiry).apply()
                 isLogado = true
             })
         } else {
@@ -164,7 +180,7 @@ fun FundoAnimado(tema: AppColors) {
 }
 
 @Composable
-fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
+fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
     val context = LocalContext.current
     var keyInput by remember { mutableStateOf("") }
     var carregando by remember { mutableStateOf(false) }
@@ -235,7 +251,7 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
                             carregando = false
                             if (resultado.first) {
                                 Toast.makeText(context, "Acesso liberado", Toast.LENGTH_SHORT).show()
-                                onLoginSucesso(resultado.second)
+                                onLoginSucesso(resultado.second, keyInput)
                             } else {
                                 Toast.makeText(context, "Key inválida", Toast.LENGTH_SHORT).show()
                             }
@@ -443,7 +459,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         }
                         3 -> {
                             val expiry = LocalContext.current.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE).getLong("expiry", 0L)
-                            val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
+                            val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
                             
                             CardFuncao("Expira em", dataStr, false, {}, tema, isEstatico = true)
                             CardFuncao("Plataforma", "Android Nativo", false, {}, tema, isEstatico = true)
@@ -614,6 +630,30 @@ suspend fun validarKey(key: String, context: Context): Pair<Boolean, Long> = wit
         e.printStackTrace()
     }
     return@withContext Pair(false, 0L)
+}
+
+suspend fun checarSessaoNoServidor(key: String, context: Context): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val client = OkHttpClient()
+        val json = JSONObject().apply {
+            put("key", key.trim())
+            put("hwid", pegarHwid(context))
+        }
+        val body = json.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("https://qzz-backend.onrender.com/api/auth/login")
+            .post(body)
+            .build()
+
+        val response = client.newCall(request).execute()
+        val resBody = response.body?.string() ?: ""
+        val jsonRes = JSONObject(resBody)
+
+        return@withContext jsonRes.optBoolean("success", false)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return@withContext true
+    }
 }
 
 fun executarExploit(context: Context) {
