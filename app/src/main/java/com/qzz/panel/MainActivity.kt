@@ -10,11 +10,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +32,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -82,47 +86,60 @@ fun QzzPanelApp() {
     var temaIndex by remember { mutableIntStateOf(prefs.getInt("tema_index", 0)) }
     val temaAtual = when(temaIndex) { 1 -> TemaRoxo; 2 -> TemaPreto; else -> TemaVermelho }
 
-    if (!isLogado) {
-        TelaLogin(temaAtual, onLoginSucesso = { expiry ->
-            prefs.edit().putString("token", "salvo").putLong("expiry", expiry).apply()
-            isLogado = true
-        })
-    } else {
-        TelaPainel(
-            tema = temaAtual,
-            onTrocarTema = {
-                temaIndex = (temaIndex + 1) % 3
-                prefs.edit().putInt("tema_index", temaIndex).apply()
-            },
-            onSair = {
-                prefs.edit().clear().apply()
-                isLogado = false
-            }
-        )
+    // Animação de transição entre Login e Painel
+    AnimatedContent(targetState = isLogado, label = "tela_transicao") { logado ->
+        if (!logado) {
+            TelaLogin(temaAtual, onLoginSucesso = { expiry ->
+                prefs.edit().putString("token", "salvo").putLong("expiry", expiry).apply()
+                isLogado = true
+            })
+        } else {
+            TelaPainel(
+                tema = temaAtual,
+                onTrocarTema = {
+                    temaIndex = (temaIndex + 1) % 3
+                    prefs.edit().putInt("tema_index", temaIndex).apply()
+                },
+                onSair = {
+                    prefs.edit().clear().apply()
+                    isLogado = false
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun FundoAnimado(tema: AppColors) {
+    val infiniteTransition = rememberInfiniteTransition(label = "fundo")
+    
+    // Animando a posição das bolhas
+    val offsetX by infiniteTransition.animateFloat(
+        initialValue = -100f,
+        targetValue = 100f,
+        animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "bolha_x"
+    )
+
     Box(modifier = Modifier.fillMaxSize().background(tema.bgMain)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(tema.accent.copy(alpha = 0.25f), Color.Transparent),
-                    center = Offset(size.width * 0.1f, size.height * 0.1f),
+                    center = Offset(size.width * 0.1f + offsetX, size.height * 0.1f),
                     radius = size.width * 0.8f
                 ),
                 radius = size.width * 0.8f,
-                center = Offset(size.width * 0.1f, size.height * 0.1f)
+                center = Offset(size.width * 0.1f + offsetX, size.height * 0.1f)
             )
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(tema.accentDark.copy(alpha = 0.25f), Color.Transparent),
-                    center = Offset(size.width * 0.9f, size.height * 0.8f),
+                    center = Offset(size.width * 0.9f - offsetX, size.height * 0.8f),
                     radius = size.width * 0.9f
                 ),
                 radius = size.width * 0.9f,
-                center = Offset(size.width * 0.9f, size.height * 0.8f)
+                center = Offset(size.width * 0.9f - offsetX, size.height * 0.8f)
             )
         }
     }
@@ -141,75 +158,81 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
     ) {
         FundoAnimado(tema)
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .clip(RoundedCornerShape(28.dp))
-                .background(tema.bgPanel.copy(alpha = 0.85f))
-                .border(1.dp, tema.accent.copy(alpha = 0.5f), RoundedCornerShape(28.dp))
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { 50 }),
+            exit = fadeOut()
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo",
-                modifier = Modifier.size(90.dp).clip(CircleShape).border(3.dp, tema.accent, CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "GUTO x QZZ", color = tema.accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
-            Text(text = "ACESSO PREMIUM • PAYPAL", color = tema.textDim, fontSize = 10.sp, letterSpacing = 2.sp)
-            
-            Spacer(modifier = Modifier.height(32.dp))
-
-            OutlinedTextField(
-                value = keyInput,
-                onValueChange = { keyInput = it },
-                placeholder = { Text("Digite sua key", color = tema.textDim) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = tema.bgMain,
-                    unfocusedContainerColor = tema.bgMain,
-                    focusedTextColor = tema.textMain,
-                    unfocusedTextColor = tema.textMain,
-                    focusedIndicatorColor = tema.accent,
-                    unfocusedIndicatorColor = tema.border
-                ),
-                shape = RoundedCornerShape(14.dp),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = {
-                    if (keyInput.isBlank()) {
-                        Toast.makeText(context, "Digite a key", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    carregando = true
-                    scope.launch {
-                        val resultado = validarKey(keyInput, context)
-                        carregando = false
-                        if (resultado.first) {
-                            Toast.makeText(context, "Acesso liberado", Toast.LENGTH_SHORT).show()
-                            onLoginSucesso(resultado.second)
-                        } else {
-                            Toast.makeText(context, "Key inválida", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                shape = RoundedCornerShape(16.dp),
-                enabled = !carregando
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(tema.bgPanel.copy(alpha = 0.85f))
+                    .border(1.dp, tema.accent.copy(alpha = 0.5f), RoundedCornerShape(28.dp))
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (carregando) {
-                    CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo",
+                    modifier = Modifier.size(90.dp).clip(CircleShape).border(3.dp, tema.accent, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(text = "GUTO x QZZ", color = tema.accent, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                Text(text = "ACESSO PREMIUM • PAYPAL", color = tema.textDim, fontSize = 10.sp, letterSpacing = 2.sp)
+                
+                Spacer(modifier = Modifier.height(32.dp))
+
+                OutlinedTextField(
+                    value = keyInput,
+                    onValueChange = { keyInput = it },
+                    placeholder = { Text("Digite sua key", color = tema.textDim) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = tema.bgMain,
+                        unfocusedContainerColor = tema.bgMain,
+                        focusedTextColor = tema.textMain,
+                        unfocusedTextColor = tema.textMain,
+                        focusedIndicatorColor = tema.accent,
+                        unfocusedIndicatorColor = tema.border
+                    ),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = {
+                        if (keyInput.isBlank()) {
+                            Toast.makeText(context, "Digite a key", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        carregando = true
+                        scope.launch {
+                            val resultado = validarKey(keyInput, context)
+                            carregando = false
+                            if (resultado.first) {
+                                Toast.makeText(context, "Acesso liberado", Toast.LENGTH_SHORT).show()
+                                onLoginSucesso(resultado.second)
+                            } else {
+                                Toast.makeText(context, "Key inválida", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !carregando
+                ) {
+                    if (carregando) {
+                        CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
+                    }
                 }
             }
         }
@@ -233,7 +256,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Launcher para pedir permissão de Overlay
     val overlayPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { 
         if (Settings.canDrawOverlays(context)) {
             context.startService(Intent(context, OverlayService::class.java))
@@ -247,7 +269,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
         }
     }
 
-    // Função para injetar e abrir overlay
     val injetarEAbrir = {
         injetando = true
         scope.launch {
@@ -255,7 +276,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
             injetando = false
             Toast.makeText(context, "Overlay Ativado!", Toast.LENGTH_SHORT).show()
             
-            // Checa permissão de overlay
             if (!Settings.canDrawOverlays(context)) {
                 val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
                 overlayPermissionLauncher.launch(intent)
@@ -263,7 +283,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 context.startService(Intent(context, OverlayService::class.java))
             }
             
-            // Abre o jogo
             executarExploit(context)
         }
     }
@@ -333,87 +352,95 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
-            ) {
-                when (abaSelecionada) {
-                    0 -> {
-                        // AIM ASSIST BLOQUEADO
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(tema.bgCard.copy(alpha = 0.5f)) // Mais escuro/transparente
-                                .border(1.dp, tema.border, RoundedCornerShape(16.dp))
-                                .clickable { 
-                                    Toast.makeText(context, "Injete as funções para liberar o Overlay do Aim Assist!", Toast.LENGTH_LONG).show()
+            // AnimatedContent para transição de abas
+            AnimatedContent(
+                targetState = abaSelecionada,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                }, label = "abas"
+            ) { targetAba ->
+                Column(
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
+                ) {
+                    when (targetAba) {
+                        0 -> {
+                            // AIM ASSIST BLOQUEADO
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(tema.bgCard.copy(alpha = 0.5f))
+                                    .border(1.dp, tema.border, RoundedCornerShape(16.dp))
+                                    .clickable { 
+                                        Toast.makeText(context, "Injete as funções para liberar o Overlay do Aim Assist!", Toast.LENGTH_LONG).show()
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Aim Assist (Overlay)", color = tema.textDim, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("Requer injeção para desbloquear", color = tema.border, fontSize = 11.sp)
                                 }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Aim Assist (Overlay)", color = tema.textDim, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("Requer injeção para desbloquear", color = tema.border, fontSize = 11.sp)
+                                Text("🔒", fontSize = 18.sp)
                             }
-                            Text("🔒", fontSize = 18.sp)
-                        }
 
-                        CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema)
-                        CardFuncao("Reduzir recoil", "Controle de recuo", toggle2, { toggle2 = it }, tema)
-                        CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema)
-                    }
-                    1 -> {
-                        CardFuncao("Reduzir lag", "Otimização de rede", toggleLag1, { toggleLag1 = it }, tema)
-                        CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", toggleLag2, { toggleLag2 = it }, tema)
-                    }
-                    2 -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(tema.accent.copy(alpha = 0.05f))
-                                .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(16.dp))
-                                .clickable { seletorArquivo.launch("application/zip") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("📦", fontSize = 40.sp)
-                                Text(
-                                    text = if (arquivoUri != null) "Arquivo carregado" else "Selecionar arquivo .zip",
-                                    color = tema.textMain,
-                                    fontSize = 14.sp
-                                )
+                            CardFuncao("Remover tremedeira", "Estabilização de mira", toggle1, { toggle1 = it }, tema)
+                            CardFuncao("Reduzir recoil", "Controle de recuo", toggle2, { toggle2 = it }, tema)
+                            CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema)
+                        }
+                        1 -> {
+                            CardFuncao("Reduzir lag", "Otimização de rede", toggleLag1, { toggleLag1 = it }, tema)
+                            CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", toggleLag2, { toggleLag2 = it }, tema)
+                        }
+                        2 -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(tema.accent.copy(alpha = 0.05f))
+                                    .border(2.dp, if (arquivoUri != null) tema.accent else tema.border, RoundedCornerShape(16.dp))
+                                    .clickable { seletorArquivo.launch("application/zip") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("📦", fontSize = 40.sp)
+                                    Text(
+                                        text = if (arquivoUri != null) "Arquivo carregado" else "Selecionar arquivo .zip",
+                                        color = tema.textMain,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { Toast.makeText(context, "Arquivo Injetado", Toast.LENGTH_SHORT).show() },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
+                                enabled = arquivoUri != null,
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Bold)
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { Toast.makeText(context, "Arquivo Injetado", Toast.LENGTH_SHORT).show() },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
-                            enabled = arquivoUri != null,
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text("INJETAR ARQUIVO", color = tema.btnText, fontWeight = FontWeight.Bold)
+                        3 -> {
+                            val expiry = LocalContext.current.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE).getLong("expiry", 0L)
+                            val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
+                            
+                            CardFuncao("Expira em", dataStr, false, {}, tema, isEstatico = true)
+                            CardFuncao("Plataforma", "Android Nativo", false, {}, tema, isEstatico = true)
+                            
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Text(
+                                text = "Sair da conta",
+                                color = tema.textDim,
+                                fontSize = 12.sp,
+                                modifier = Modifier.fillMaxWidth().clickable { onSair() }.padding(10.dp),
+                                textAlign = TextAlign.Center
+                            )
                         }
-                    }
-                    3 -> {
-                        val expiry = LocalContext.current.getSharedPreferences("qzz_prefs", Context.MODE_PRIVATE).getLong("expiry", 0L)
-                        val dataStr = if (expiry > 0) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(expiry)) else "Carregando..."
-                        
-                        CardFuncao("Expira em", dataStr, false, {}, tema, isEstatico = true)
-                        CardFuncao("Plataforma", "Android Nativo", false, {}, tema, isEstatico = true)
-                        
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            text = "Sair da conta",
-                            color = tema.textDim,
-                            fontSize = 12.sp,
-                            modifier = Modifier.fillMaxWidth().clickable { onSair() }.padding(10.dp),
-                            textAlign = TextAlign.Center
-                        )
                     }
                 }
             }
@@ -462,10 +489,36 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
 @Composable
 fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean) -> Unit, tema: AppColors, isEstatico: Boolean = false) {
+    // Animação de escala para o Card
+    val scale by animateFloatAsState(
+        targetValue = if (marcado) 1.02f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "card_scale"
+    )
+
+    // Animação de brilho (Glow)
+    val infiniteTransition = rememberInfiniteTransition(label = "glow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(tween(1500, easing = LinearEasing), RepeatMode.Reverse),
+        label = "glow_alpha"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = if (marcado) 15.dp else 0.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = tema.accent.copy(alpha = glowAlpha),
+                spotColor = tema.accent.copy(alpha = glowAlpha)
+            )
             .clip(RoundedCornerShape(16.dp))
             .background(tema.bgCard.copy(alpha = 0.9f))
             .border(
@@ -483,18 +536,31 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
             Text(desc, color = if (marcado) tema.textMain else tema.textDim, fontSize = 11.sp)
         }
         if (!isEstatico) {
+            // Switch com animação
+            val trackColor by animateColorAsState(
+                targetValue = if (marcado) tema.accent else tema.border,
+                animationSpec = tween(300),
+                label = "track_color"
+            )
+            val thumbOffset by animateDpAsState(
+                targetValue = if (marcado) 20.dp else 2.dp,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                label = "thumb_offset"
+            )
+
             Box(
                 modifier = Modifier
                     .width(44.dp)
                     .height(24.dp)
                     .clip(CircleShape)
-                    .background(if (marcado) tema.accent else tema.border)
+                    .background(trackColor)
                     .clickable { onMudar(!marcado) }
                     .padding(2.dp),
-                contentAlignment = if (marcado) Alignment.CenterEnd else Alignment.CenterStart
+                contentAlignment = Alignment.CenterStart
             ) {
                 Box(
                     modifier = Modifier
+                        .offset(x = thumbOffset)
                         .size(20.dp)
                         .clip(CircleShape)
                         .background(Color.White)
