@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,8 +24,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -111,12 +114,18 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
         modifier = Modifier.fillMaxSize().background(tema.bgMain),
         contentAlignment = Alignment.Center
     ) {
+        // Bolhas de fundo
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(color = tema.accent.copy(alpha = 0.15f), radius = 300f, center = Offset(0f, 0f))
+            drawCircle(color = tema.accentDark.copy(alpha = 0.15f), radius = 400f, center = Offset(size.width, size.height))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
-                .shadow(20.dp, RoundedCornerShape(32.dp), ambientColor = tema.accent, spotColor = tema.accent)
+                .shadow(20.dp, RoundedCornerShape(32.dp), ambientColor = tema.accent)
                 .clip(RoundedCornerShape(32.dp))
-                .background(tema.bgPanel)
+                .background(tema.bgPanel.copy(alpha = 0.95f))
                 .border(1.dp, tema.accent.copy(alpha = 0.4f), RoundedCornerShape(32.dp))
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -173,14 +182,22 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long) -> Unit) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(54.dp).shadow(10.dp, RoundedCornerShape(16.dp), ambientColor = tema.accent),
-                colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues(),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !carregando
             ) {
-                if (carregando) {
-                    CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(listOf(tema.accent, tema.accentDark)), RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (carregando) {
+                        CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
+                    }
                 }
             }
         }
@@ -192,9 +209,13 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
     var abaSelecionada by remember { mutableIntStateOf(0) }
     val abas = listOf("FUNÇÕES", "LAG", "ARQUIVOS", "CONTA")
     
+    // Estados dos botões
     var toggle1 by remember { mutableStateOf(true) }
     var toggle2 by remember { mutableStateOf(false) }
     var toggle3 by remember { mutableStateOf(true) }
+    
+    var toggleLag1 by remember { mutableStateOf(true) }
+    var toggleLag2 by remember { mutableStateOf(false) }
     
     var injetando by remember { mutableStateOf(false) }
     var arquivoUri by remember { mutableStateOf<Uri?>(null) }
@@ -208,20 +229,24 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
         }
     }
 
-    val gradientBg = Brush.verticalGradient(colors = listOf(tema.bgMain, tema.bgPanel))
-
     Box(
-        modifier = Modifier.fillMaxSize().background(gradientBg),
+        modifier = Modifier.fillMaxSize().background(tema.bgMain),
         contentAlignment = Alignment.Center
     ) {
+        // Fundo com Bolhas de Luz (Orbs)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(color = tema.accent.copy(alpha = 0.15f), radius = 400f, center = Offset(0f, size.height * 0.3f))
+            drawCircle(color = tema.accentDark.copy(alpha = 0.15f), radius = 500f, center = Offset(size.width, size.height * 0.8f))
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.92f)
-                .shadow(25.dp, RoundedCornerShape(32.dp), ambientColor = tema.accent, spotColor = tema.accent)
-                .clip(RoundedCornerShape(32.dp))
-                .background(tema.bgPanel)
-                .border(1.dp, tema.accent.copy(alpha = 0.3f), RoundedCornerShape(32.dp))
+                .shadow(30.dp, RoundedCornerShape(36.dp), ambientColor = tema.accent, spotColor = tema.accent)
+                .clip(RoundedCornerShape(36.dp))
+                .background(tema.bgPanel.copy(alpha = 0.90f))
+                .border(1.dp, tema.accent.copy(alpha = 0.3f), RoundedCornerShape(36.dp))
                 .padding(24.dp)
         ) {
             // Header
@@ -294,8 +319,9 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         CardFuncao("Modo desempenho", "Otimização de performance", toggle3, { toggle3 = it }, tema)
                     }
                     1 -> { // Lag
-                        CardFuncao("Reduzir lag", "Otimização de rede", true, {}, tema)
-                        CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", false, {}, tema)
+                        // CORRIGIDO: Agora tem estado e função para mudar!
+                        CardFuncao("Reduzir lag", "Otimização de rede", toggleLag1, { toggleLag1 = it }, tema)
+                        CardFuncao("Travar em 60 FPS", "Estabilidade de quadros", toggleLag2, { toggleLag2 = it }, tema)
                     }
                     2 -> { // Arquivos
                         Box(
@@ -356,6 +382,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(64.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Botão NORMAL
                 Button(
                     onClick = {
                         injetando = true
@@ -366,13 +393,20 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         }
                     },
                     modifier = Modifier.weight(1f).fillMaxHeight().shadow(10.dp, RoundedCornerShape(18.dp), ambientColor = tema.accentDark),
-                    colors = ButtonDefaults.buttonColors(containerColor = tema.accentDark),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues(),
                     shape = RoundedCornerShape(18.dp),
                     enabled = !injetando
                 ) {
-                    Text("INJETAR FF\nNORMAL", color = Color.White, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(tema.accentDark, tema.bgMain)), RoundedCornerShape(18.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("INJETAR FF\nNORMAL", color = Color.White, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
+                    }
                 }
 
+                // Botão MAX
                 Button(
                     onClick = {
                         injetando = true
@@ -383,11 +417,17 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         }
                     },
                     modifier = Modifier.weight(1f).fillMaxHeight().shadow(15.dp, RoundedCornerShape(18.dp), ambientColor = tema.accent),
-                    colors = ButtonDefaults.buttonColors(containerColor = tema.accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues(),
                     shape = RoundedCornerShape(18.dp),
                     enabled = !injetando
                 ) {
-                    Text("INJETAR FF\nMAX", color = tema.btnText, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(tema.accent, tema.accentDark)), RoundedCornerShape(18.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("INJETAR FF\nMAX", color = tema.btnText, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 16.sp)
+                    }
                 }
             }
             
