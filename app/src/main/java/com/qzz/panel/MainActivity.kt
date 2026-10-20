@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -93,7 +94,7 @@ fun QzzPanelApp() {
                 val expiry = prefs.getLong("expiry", 0L)
                 val agora = System.currentTimeMillis()
                 
-                // 1. Checa se expirou localmente (data e hora)
+                // 1. Checa se expirou localmente
                 if (expiry > 0 && agora >= expiry) {
                     prefs.edit().clear().apply()
                     isLogado = false
@@ -103,7 +104,7 @@ fun QzzPanelApp() {
                     break
                 }
                 
-                // 2. Checa no servidor se a key foi banida/revogada
+                // 2. Checa no servidor se a key foi banida
                 val key = prefs.getString("key_salva", null)
                 if (key != null) {
                     val aindaValida = checarSessaoNoServidor(key, context)
@@ -111,7 +112,7 @@ fun QzzPanelApp() {
                         prefs.edit().clear().apply()
                         isLogado = false
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "⚠ Sua key foi banida ou revogada!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "⚠ Sua key foi revogada ou banida!", Toast.LENGTH_LONG).show()
                         }
                         break
                     }
@@ -182,6 +183,7 @@ fun FundoAnimado(tema: AppColors) {
 @Composable
 fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     var keyInput by remember { mutableStateOf("") }
     var carregando by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -266,6 +268,33 @@ fun TelaLogin(tema: AppColors, onLoginSucesso: (Long, String) -> Unit) {
                         CircularProgressIndicator(color = tema.btnText, modifier = Modifier.size(24.dp))
                     } else {
                         Text("ENTRAR", color = tema.btnText, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 1.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { uriHandler.openUri("https://discord.gg/MfY4EAFKnf") },
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5865F2)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("Adquirir Key", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    }
+
+                    Button(
+                        onClick = { uriHandler.openUri("https://whatsapp.com/channel/0029Vb8FZ022Jl87vqng8E2v") },
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("Grupo WhatsApp", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     }
                 }
             }
