@@ -17,7 +17,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -86,7 +86,26 @@ fun QzzPanelApp() {
     var temaIndex by remember { mutableIntStateOf(prefs.getInt("tema_index", 0)) }
     val temaAtual = when(temaIndex) { 1 -> TemaRoxo; 2 -> TemaPreto; else -> TemaVermelho }
 
-    // Animação de transição entre Login e Painel
+    // --- VERIFICADOR DE EXPIRAÇÃO (SESSION WATCHER) ---
+    LaunchedEffect(isLogado) {
+        if (isLogado) {
+            while (true) {
+                val expiry = prefs.getLong("expiry", 0L)
+                val agora = System.currentTimeMillis()
+                
+                if (expiry > 0 && agora >= expiry) {
+                    prefs.edit().clear().apply()
+                    isLogado = false
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "⚠ Sua key expirou! Faça login novamente.", Toast.LENGTH_LONG).show()
+                    }
+                    break
+                }
+                delay(30000) // Checa a cada 30 segundos
+            }
+        }
+    }
+
     AnimatedContent(targetState = isLogado, label = "tela_transicao") { logado ->
         if (!logado) {
             TelaLogin(temaAtual, onLoginSucesso = { expiry ->
@@ -113,7 +132,6 @@ fun QzzPanelApp() {
 fun FundoAnimado(tema: AppColors) {
     val infiniteTransition = rememberInfiniteTransition(label = "fundo")
     
-    // Animando a posição das bolhas
     val offsetX by infiniteTransition.animateFloat(
         initialValue = -100f,
         targetValue = 100f,
@@ -352,7 +370,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // AnimatedContent para transição de abas
             AnimatedContent(
                 targetState = abaSelecionada,
                 transitionSpec = {
@@ -364,7 +381,6 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                 ) {
                     when (targetAba) {
                         0 -> {
-                            // AIM ASSIST BLOQUEADO
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -489,14 +505,12 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
 
 @Composable
 fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean) -> Unit, tema: AppColors, isEstatico: Boolean = false) {
-    // Animação de escala para o Card
     val scale by animateFloatAsState(
         targetValue = if (marcado) 1.02f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "card_scale"
     )
 
-    // Animação de brilho (Glow)
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -536,7 +550,6 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
             Text(desc, color = if (marcado) tema.textMain else tema.textDim, fontSize = 11.sp)
         }
         if (!isEstatico) {
-            // Switch com animação
             val trackColor by animateColorAsState(
                 targetValue = if (marcado) tema.accent else tema.border,
                 animationSpec = tween(300),
