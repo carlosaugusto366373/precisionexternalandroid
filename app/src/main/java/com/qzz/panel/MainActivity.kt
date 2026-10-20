@@ -36,9 +36,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,20 +51,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
-
-// --- FONTE NOVA ---
-val PoppinsFont = FontFamily(
-    Font(R.font.poppins_regular, FontWeight.Normal),
-    Font(R.font.poppins_bold, FontWeight.Bold)
-)
-
-// Tipografia customizada para o Material 3
-val AppTypography = Typography(
-    titleLarge = TextStyle(fontFamily = PoppinsFont, fontWeight = FontWeight.Bold),
-    bodyLarge = TextStyle(fontFamily = PoppinsFont),
-    bodyMedium = TextStyle(fontFamily = PoppinsFont),
-    labelLarge = TextStyle(fontFamily = PoppinsFont, fontWeight = FontWeight.Bold)
-)
 
 // --- TEMAS ---
 data class AppColors(
@@ -90,9 +73,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(typography = AppTypography) {
-                QzzPanelApp()
-            }
+            QzzPanelApp()
         }
     }
 }
