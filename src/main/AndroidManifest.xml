@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permissão de Internet para o Login na API -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Queries para o Android 11+ permitir abrir o Free Fire -->
+    <queries>
+        <package android:name="com.dts.freefireth" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="freefire" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="QZZ Panel"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.QZZPanel">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
