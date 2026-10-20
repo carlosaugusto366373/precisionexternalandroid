@@ -108,7 +108,7 @@ fun FundoAnimado(tema: AppColors) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(tema.accent.copy(alpha = 0.3f), Color.Transparent),
+                    colors = listOf(tema.accent.copy(alpha = 0.25f), Color.Transparent),
                     center = Offset(size.width * 0.1f, size.height * 0.1f),
                     radius = size.width * 0.8f
                 ),
@@ -117,18 +117,13 @@ fun FundoAnimado(tema: AppColors) {
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(tema.accentDark.copy(alpha = 0.3f), Color.Transparent),
+                    colors = listOf(tema.accentDark.copy(alpha = 0.25f), Color.Transparent),
                     center = Offset(size.width * 0.9f, size.height * 0.8f),
                     radius = size.width * 0.9f
                 ),
                 radius = size.width * 0.9f,
                 center = Offset(size.width * 0.9f, size.height * 0.8f)
             )
-        }
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val lineColor = tema.accent.copy(alpha = 0.2f)
-            drawLine(color = lineColor, start = Offset(0f, size.height * 0.3f), end = Offset(size.width, size.height * 0.3f), strokeWidth = 2f)
-            drawLine(color = lineColor, start = Offset(0f, size.height * 0.7f), end = Offset(size.width, size.height * 0.7f), strokeWidth = 2f)
         }
     }
 }
@@ -364,7 +359,7 @@ fun TelaPainel(tema: AppColors, onTrocarTema: () -> Unit, onSair: () -> Unit) {
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Sair da conta",
-                            color = tema.textDim, // <-- CORRIGIDO AQUI
+                            color = tema.textDim,
                             fontSize = 12.sp,
                             modifier = Modifier.fillMaxWidth().clickable { onSair() }.padding(10.dp),
                             textAlign = TextAlign.Center
@@ -438,7 +433,7 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
             .clip(RoundedCornerShape(16.dp))
             .background(tema.bgCard.copy(alpha = 0.9f))
             .border(
-                width = if (marcado) 1.dp else 1.dp,
+                width = 1.dp,
                 color = if (marcado) tema.accent else tema.border,
                 shape = RoundedCornerShape(16.dp)
             )
@@ -452,15 +447,24 @@ fun CardFuncao(titulo: String, desc: String, marcado: Boolean, onMudar: (Boolean
             Text(desc, color = if (marcado) tema.textMain else tema.textDim, fontSize = 11.sp)
         }
         if (!isEstatico) {
+            // Switch estilo iOS
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .width(44.dp)
+                    .height(24.dp)
                     .clip(CircleShape)
                     .background(if (marcado) tema.accent else tema.border)
-                    .then(
-                        if (marcado) Modifier.shadow(10.dp, CircleShape, ambientColor = tema.accent) else Modifier
-                    )
-            )
+                    .clickable { onMudar(!marcado) }
+                    .padding(2.dp),
+                contentAlignment = if (marcado) Alignment.CenterEnd else Alignment.CenterStart
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                )
+            }
         }
     }
 }
