@@ -3,7 +3,6 @@ package com.qzz.panel
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
@@ -11,8 +10,8 @@ import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -24,12 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewTreeLifecycleOwner
+import androidx.compose.ui.platform.ViewTreeSavedStateRegistryOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.delay
 
 class OverlayService : LifecycleService() {
@@ -62,6 +61,7 @@ class OverlayService : LifecycleService() {
 
         composeView = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@OverlayService)
+            setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setContent {
                 var aimAssist by remember { mutableStateOf(false) }
                 var mostrarFps by remember { mutableStateOf(true) }
@@ -150,7 +150,12 @@ class OverlayService : LifecycleService() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        val notification = Notification.Builder(this, channelId)
+        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, channelId)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
             .setContentTitle("QZZ Panel Ativo")
             .setContentText("O overlay está rodando.")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
