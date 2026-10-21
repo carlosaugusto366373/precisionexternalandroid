@@ -690,7 +690,7 @@ suspend fun validarKey(key: String, context: Context): Pair<Boolean, Long> = wit
         }
         val body = json.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("https://qzz-backend.onrender.com/api/auth/login")
+            .url("https://qzzbackend.squareweb.app/api/auth/login")
             .post(body)
             .build()
 
@@ -717,7 +717,7 @@ suspend fun checarSessaoNoServidor(key: String, context: Context): Boolean = wit
         }
         val body = json.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("https://qzz-backend.onrender.com/api/auth/login")
+            .url("https://qzzbackend.squareweb.app/api/auth/login")
             .post(body)
             .build()
 
